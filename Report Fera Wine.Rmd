@@ -1,0 +1,110 @@
+---
+title: "PT calculations"
+author: "Hanspeter Sprecher"
+date: "20 9 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(readxl)
+library(metRology)
+
+Fera_wine <- read_excel("~/Google Drive/Temp Sial/R_Projekte/Fera_wine.xlsx")
+dat<- Fera_wine
+```
+
+```{r function, include=FALSE}
+hampl<- function(x, maxiter= 25) {
+  x_star<- median(x)
+  s_star<- mad(x)
+  dif<- max(x)-min(x)
+  iter<- 0
+  while ( dif >=s_star*0.01/sqrt(length(x)) && iter < maxiter) {
+  iter<- iter+1
+  q_i<- abs((x-x_star)/s_star)
+  w_4.5<- which(q_i>4.5)
+  w_3<- which(4.5>=q_i & q_i>3)
+  w_1.5<- which(3>=q_i & q_i>1.5)
+  w_0<- which(1.5>=q_i)
+  w_i<- q_i
+  w_i[w_4.5]<- q_i[w_4.5]*0
+  w_i[w_3]<- (4.5-q_i[w_3])/q_i[w_3]
+  w_i[w_1.5]<- (1.5/q_i[w_1.5])
+  w_i[w_0]<- 1
+  
+  x_star_new<-sum(w_i*x)/sum(w_i)
+  dif<- abs(x_star_new-x_star)
+  x_star<- x_star_new}
+  if (iter >= maxiter) 
+    warning("Maximum iterations reached; Hampl/Q estimator may not have converged")
+  return(list(mu= x_star, s= s_star, iterations=iter))
+}
+```
+## Asigned values (algA and Hampel)
+
+```{r asigned values, echo=FALSE}
+asigned_value<- algA(na.omit(dat$result_cd))$mu
+s<- 20
+asigned_value_ha<- hampl(na.omit(dat$result_cd))$mu
+s_ha<- hampl(na.omit(dat$result_cd))$s
+
+a_v<- paste(round(asigned_value,2), "ug/l")
+ob_limit<- paste(round(asigned_value+2*s, 2), "ug/l")
+unt_limit<- paste(round(asigned_value-2*s,2), "ug/l")
+a_v_ha<- paste(round(asigned_value_ha,2), "ug/l")
+ob_limit_ha<- paste(round(asigned_value_ha+2*s_ha, 2), "ug/l")
+unt_limit_ha<- paste(round(asigned_value_ha-2*s_ha,2), "ug/l")
+
+paste("Algorithmus A:", round(asigned_value,2), "ug/l")
+paste("Horwitz equation for s:", s, "ug/l")
+
+paste("Hampel robust mean:", round(asigned_value_ha,2), "ug/l")
+paste("MAD (used for Hampel estimate):", s_ha, "ug/l")
+
+```
+
+
+## Hampel robust mean 
+```{r hampel}
+
+dat%>% 
+  mutate(z_score_cd_hampl= (result_cd-asigned_value_ha)/s_ha) %>%
+  mutate(Lab_no = reorder(Lab_no, z_score_cd_hampl)) %>%
+  ggplot(aes(Lab_no, z_score_cd_hampl, fill=method_cd))+
+  geom_col()+labs(x = "Laboratory Number", y= "z-score")+  
+  scale_fill_discrete(name="Method")+
+  ggtitle("z-Scores for Cadmium asigned value with Hampel robust mean")+ 
+  geom_hline(yintercept=c(-2,0,2))+
+  geom_text(aes(3, 2.4, label= ob_limit_ha))+
+  geom_text(aes(3, 0.4, label= a_v_ha))+
+  geom_text(aes(3, -1.6, label= unt_limit_ha))
+```
+
+
+
+## Traditional algA calculations
+
+
+```{r algA}
+asigned_value<- algA(na.omit(dat$result_cd))$mu
+s<- 20
+asigned_value_ha<- hampl(na.omit(dat$result_cd))$mu
+s_ha<- hampl(na.omit(dat$result_cd))$s
+
+a_v<- paste(round(asigned_value,2), "ug/l")
+ob_limit<- paste(round(asigned_value+2*s, 2), "ug/l")
+unt_limit<- paste(round(asigned_value-2*s,2), "ug/l")
+
+dat%>% 
+  mutate(Lab_no = reorder(Lab_no, z_score_cd)) %>% 
+  ggplot(aes(Lab_no, z_score_cd, fill=method_cd))+
+  geom_col()+labs(x = "Laboratory Number", y= "z-score")+  
+  scale_fill_discrete(name="Method")+ggtitle("z-Scores for Cadmium asigned value with Algorithmus A")+ geom_hline(yintercept=c(-2,0,2))+
+  geom_text(aes(3, 2.2, label= ob_limit))+
+  geom_text(aes(3, 0.2, label= a_v))+
+  geom_text(aes(3, -1.8, label= unt_limit))
+```
+
+
