@@ -1,8 +1,11 @@
-hampl<- function(x, maxiter= 25, s_method="MAD") {
+hampl<- function(x, maxiter= 25, s_method="MAD", na.rm=TRUE) {
+  if(na.rm==TRUE)
+    x<-na.omit(x)
   x_star<- median(x)
   if(s_method=="MAD")
-  s_star<- mad(x)
-  
+    s_star<- mad(x)
+  if(s_method=="nIQR")
+    s_star<- 0.7413* IQR(x)
   
   dif<- max(x)-min(x)
   iter<- 0
@@ -23,6 +26,6 @@ hampl<- function(x, maxiter= 25, s_method="MAD") {
   dif<- abs(x_star_new-x_star)
   x_star<- x_star_new}
   if (iter >= maxiter) 
-    warning("Maximum iterations reached; Hampl/Q estimator may not have converged")
+    warning("Maximum iterations reached; Hampel estimator may not have converged")
   return(list(mu= x_star, s= s_star, iterations=iter))
 }
