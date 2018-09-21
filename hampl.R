@@ -1,6 +1,9 @@
-hampl<- function(x, maxiter= 25) {
+hampl<- function(x, maxiter= 25, s_method="MAD") {
   x_star<- median(x)
+  if(s_method=="MAD")
   s_star<- mad(x)
+  
+  
   dif<- max(x)-min(x)
   iter<- 0
   while ( dif >=s_star*0.01/sqrt(length(x)) && iter < maxiter) {
