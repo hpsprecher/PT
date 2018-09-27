@@ -1,5 +1,7 @@
 #Q estimate
-qn_est<-function(x){
+qn_est<-function(x, na.rm=TRUE){
+  if (na.rm==TRUE)
+    x<- na.omit(x)
   p<- length(x)
   d_ij<-outer(x, x, "-")
   d_ij<- abs(as.vector(d_ij[upper.tri(d_ij, diag = FALSE)]))
