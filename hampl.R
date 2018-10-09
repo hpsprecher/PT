@@ -6,6 +6,10 @@ hampl<- function(x, maxiter= 25, s_method="MAD", na.rm=TRUE) {
     s_star<- mad(x)
   if(s_method=="nIQR")
     s_star<- 0.7413* IQR(x)
+  if(s_method=="Qn")
+    {
+    library(robustbase)
+    s_star<- Qn(x)}
   
   dif<- max(x)-min(x)
   iter<- 0
